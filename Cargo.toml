@@ -1,0 +1,18 @@
+[package]
+name = "cdrs_helpers_derive"
+version = "0.1.0"
+authors = ["Alex Pikalov <alex.pikalov.khar@gmail.com>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "0.1"
+syn = "0.11.11"
+quote = "0.3.15"
+
+[dependencies.cdrs]
+# TODO: use crates.io registry when corresponded version is published
+# git = "https://github.com/AlexPikalov/cdrs"
+# branch = "v2.0.0"
+path = "../cadrs"
