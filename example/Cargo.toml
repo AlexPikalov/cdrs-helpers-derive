@@ -1,0 +1,13 @@
+[package]
+name = "example"
+version = "0.1.0"
+authors = ["Alex Pikalov <alex.pikalov.khar@gmail.com>"]
+
+[dependencies.cdrs]
+# TODO: use crates.io registry when corresponded version is published
+# git = "https://github.com/AlexPikalov/cdrs"
+# branch = "v2.0.0"
+path = "../../cadrs"
+
+[dependencies.cdrs_helpers_derive]
+path = ".."
