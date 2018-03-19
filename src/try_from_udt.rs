@@ -15,7 +15,7 @@ pub fn impl_try_from_udt(ast: &syn::DeriveInput) -> quote::Tokens {
       }
   };
 
-  println!("{}", q);
+  // println!("{}", q);
 
   q
 }

@@ -19,7 +19,7 @@ struct Udt {
     // pub tuple: (i32, i32),
     pub vec: Vec<i8>,
     pub map: HashMap<String, i8>, // pub paren: (i8),
-    pub number_8: N,
+    pub udt: N,
 }
 
 #[derive(Debug, IntoCDRSValue, TryFromRow, TryFromUDT)]
@@ -33,7 +33,7 @@ fn main() {
         number_16: 256,
         vec: vec![1, 2, 3],
         map: HashMap::new(),
-        number_8: N { n: 0 },
+        udt: N { n: 0 },
     };
     let val: Value = udt.into_cdrs_value();
     println!("values {:?}", val);

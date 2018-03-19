@@ -18,7 +18,7 @@ pub fn get_struct_fields(ast: &syn::DeriveInput) -> Vec<quote::Tokens> {
       let mut string_name = quote!{};
       string_name.append("\"");
       string_name.append(field.ident.clone().unwrap());
-      string_name.append("\"");
+      string_name.append("\".trim()");
       let field_type = field.ty.clone();
       let field_type_string = get_ident_string(field.ty.clone());
 
