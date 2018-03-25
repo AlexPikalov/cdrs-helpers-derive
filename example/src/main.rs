@@ -2,9 +2,10 @@
 extern crate cdrs;
 #[macro_use]
 extern crate cdrs_helpers_derive;
+extern crate time;
 
+use time::Timespec;
 use std::collections::HashMap;
-use cdrs::types::AsRust;
 use cdrs::types::AsRustType;
 use cdrs::types::value::{Bytes, Value};
 use cdrs::frame::{IntoBytes, TryFromRow, TryFromUDT};
@@ -19,9 +20,11 @@ use cdrs::types::from_cdrs::FromCDRSByName;
 struct Udt {
     pub number: i32,
     pub number_16: i16,
-    pub vec: Vec<Vec<N>>,
+    // pub vec: Vec<Vec<N>>,
+    pub vec: Vec<Vec<i32>>,
     pub map: HashMap<i64, N>,
-    pub opt: Option<HashMap<i64, N>>,
+    // pub opt: Option<HashMap<i64, N>>,
+    // pub my_timestamp: Option<Timespec>,
 }
 
 // #[derive(Debug, IntoCDRSValue, TryFromRow, TryFromUDT)]
@@ -40,16 +43,10 @@ fn main() {
     let udt = Udt {
         number: 12,
         number_16: 256,
-        vec: vec![
-            vec![
-                N {
-                    n: 0,
-                    x: X { n: 2 },
-                },
-            ],
-        ],
+        vec: vec![vec![1, 2]],
         map: HashMap::new(),
-        opt: Some(HashMap::new()),
+        // opt: Some(HashMap::new()),
+        // my_timestamp: None,
     };
     let val: Value = udt.clone().into();
     let values = query_values!(udt.clone());

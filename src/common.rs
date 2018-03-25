@@ -104,7 +104,7 @@ fn into_rust_with_args(field_type: syn::Ty, arguments: quote::Tokens) -> quote::
       let opt_type = get_ident_params_string(field_type.clone());
       let opt_type_rustified = get_cdrs_type_ident(opt_type.clone());
       let opt_value_as_rust = as_rust(opt_type.clone(), quote! {opt_value});
-      quote! {
+      let q = quote! {
         {
           match #opt_type_rustified::from_cdrs_by_name(#arguments)? {
           Some(opt_value) => {
@@ -114,7 +114,11 @@ fn into_rust_with_args(field_type: syn::Ty, arguments: quote::Tokens) -> quote::
           _ => None
         }
         }
-      }
+      };
+
+      println!(">> {:?}", q);
+
+      q
     }
     _ => {
       quote! {
@@ -171,11 +175,7 @@ fn as_rust(ty: syn::Ty, val: quote::Tokens) -> quote::Tokens {
     "f32" |
     "IpAddr" |
     "Uuid" |
-    "Timespec" => {
-      quote! {
-        cdrs_type::from_cdrs_r(#val)?
-      }
-    },
+    "Timespec" => val,
     "List" => {
       let vec_type = get_ident_params_string(ty.clone());
       let inter_rust_type = get_cdrs_type_ident(vec_type.clone());
@@ -208,7 +208,7 @@ fn as_rust(ty: syn::Ty, val: quote::Tokens) -> quote::Tokens {
     },
     "Option" => {
       let opt_type = get_ident_params_string(ty.clone());
-      as_rust(opt_type.clone(), quote! {#val})
+      as_rust(opt_type.clone(), val)
     },
     _ => {
       quote! {

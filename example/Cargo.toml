@@ -3,6 +3,9 @@ name = "example"
 version = "0.1.0"
 authors = ["Alex Pikalov <alex.pikalov.khar@gmail.com>"]
 
+[dependencies]
+time = "0.1.36"
+
 [dependencies.cdrs]
 # TODO: use crates.io registry when corresponded version is published
 # git = "https://github.com/AlexPikalov/cdrs"
