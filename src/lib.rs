@@ -5,6 +5,7 @@ extern crate cdrs;
 extern crate proc_macro;
 #[macro_use]
 extern crate quote;
+extern crate rand;
 extern crate syn;
 
 mod common;

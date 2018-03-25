@@ -1,26 +1,43 @@
 use syn;
 use quote;
 
+use common::get_ident_string;
+
 pub fn impl_into_cdrs_value(ast: &syn::DeriveInput) -> quote::Tokens {
   let name = &ast.ident;
   if let syn::Body::Struct(syn::VariantData::Struct(ref fields)) = ast.body {
-    let conver_into_bytes = fields
-      .iter()
-      .map(|field| field.ident.clone().unwrap())
-      .map(|field| {
-        quote! {
-            let field_value = self.#field.into_cdrs_value();
-            bytes.extend_from_slice(field_value.into_cbytes().as_slice());
-        }
-      });
-
-    quote! {
-        impl IntoCDRSValue for #name {
-            fn into_cdrs_value(self) -> Value {
-                let mut bytes: Vec<u8> = vec![];
-                #(#conver_into_bytes)*
-                Bytes::new(bytes).into()
+    let conver_into_bytes = fields.iter().map(|field| {
+      let field_ident = field.ident.clone().unwrap();
+      if get_ident_string(field.ty.clone()).as_str() == "Option" {
+        return quote!{
+          match self.#field_ident {
+            Some(ref val) => {
+              let field_bytes: Bytes = val.clone().into();
+              bytes.append(&mut Value::new_normal(field_bytes).into_cbytes());
+            },
+            None => {
+              bytes.append(&mut Value::new_not_set().into_cbytes());
             }
+          }
+        };
+      } else {
+        return quote! {
+          let field_bytes: Bytes = self.#field_ident.into();
+          bytes.append(&mut Value::new_normal(field_bytes).into_cbytes());
+        };
+      }
+    });
+
+    // As Value has following implementation impl<T: Into<Bytes>> From<T> for Value
+    // for a struct it's enough to implement Into<Bytes> in order to be convertable into Value
+    // wich is used for making queries
+    quote! {
+        impl Into<Bytes> for #name {
+          fn into(self) -> Bytes {
+            let mut bytes: Vec<u8> = vec![];
+            #(#conver_into_bytes)*
+            Bytes::new(bytes)
+          }
         }
     }
   } else {
