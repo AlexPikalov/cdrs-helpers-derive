@@ -14,6 +14,5 @@ rand = "0.4.2"
 
 [dependencies.cdrs]
 # TODO: use crates.io registry when corresponded version is published
-# git = "https://github.com/AlexPikalov/cdrs"
-# branch = "v2.0.0"
-path = "../cadrs"
+git = "https://github.com/AlexPikalov/cdrs"
+branch = "v2.0.0"
