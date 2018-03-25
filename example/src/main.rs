@@ -23,8 +23,8 @@ struct Udt {
     // pub vec: Vec<Vec<N>>,
     pub vec: Vec<Vec<i32>>,
     pub map: HashMap<i64, N>,
-    // pub opt: Option<HashMap<i64, N>>,
-    // pub my_timestamp: Option<Timespec>,
+    pub opt: Option<HashMap<i64, N>>,
+    pub my_timestamp: Option<Timespec>,
 }
 
 // #[derive(Debug, IntoCDRSValue, TryFromRow, TryFromUDT)]
@@ -45,8 +45,8 @@ fn main() {
         number_16: 256,
         vec: vec![vec![1, 2]],
         map: HashMap::new(),
-        // opt: Some(HashMap::new()),
-        // my_timestamp: None,
+        opt: Some(HashMap::new()),
+        my_timestamp: None,
     };
     let val: Value = udt.clone().into();
     let values = query_values!(udt.clone());

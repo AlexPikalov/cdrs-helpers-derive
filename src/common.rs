@@ -104,7 +104,7 @@ fn into_rust_with_args(field_type: syn::Ty, arguments: quote::Tokens) -> quote::
       let opt_type = get_ident_params_string(field_type.clone());
       let opt_type_rustified = get_cdrs_type_ident(opt_type.clone());
       let opt_value_as_rust = as_rust(opt_type.clone(), quote! {opt_value});
-      let q = quote! {
+      quote! {
         {
           match #opt_type_rustified::from_cdrs_by_name(#arguments)? {
           Some(opt_value) => {
@@ -114,11 +114,7 @@ fn into_rust_with_args(field_type: syn::Ty, arguments: quote::Tokens) -> quote::
           _ => None
         }
         }
-      };
-
-      println!(">> {:?}", q);
-
-      q
+      }
     }
     _ => {
       quote! {
