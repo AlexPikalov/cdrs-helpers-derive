@@ -5,6 +5,5 @@ authors = ["Alex Pikalov <alex.pikalov.khar@gmail.com>"]
 
 [dependencies]
 time = "0.1.36"
-cdrs_helpers_derive = {git = "https://github.com/AlexPikalov/cdrs-helpers-derive"}
-# TODO: use crates.io registry when corresponded version is published
-cdrs = { git = "https://github.com/AlexPikalov/cdrs", branch = "v2.0.0"}
+cdrs_helpers_derive = { path = ".." }
+cdrs = "2.0.0-beta.3"

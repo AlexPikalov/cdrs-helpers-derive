@@ -1,6 +1,6 @@
-use syn;
-use quote;
 use common::get_struct_fields;
+use quote;
+use syn;
 
 pub fn impl_try_from_row(ast: &syn::DeriveInput) -> quote::Tokens {
   let name = &ast.ident;
@@ -8,7 +8,7 @@ pub fn impl_try_from_row(ast: &syn::DeriveInput) -> quote::Tokens {
 
   quote! {
       impl TryFromRow for #name {
-        fn try_from_row(cdrs: Row) -> cdrs::error::Result<Self> {
+        fn try_from_row(cdrs: Row) -> cdrs::Result<Self> {
           Ok(#name {
             #(#fields),*
           })
