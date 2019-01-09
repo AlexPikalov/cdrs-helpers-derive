@@ -1,5 +1,5 @@
-use syn;
 use quote;
+use syn;
 
 pub fn get_struct_fields(ast: &syn::DeriveInput) -> Vec<quote::Tokens> {
   if let syn::Body::Struct(syn::VariantData::Struct(ref fields)) = ast.body {
@@ -61,18 +61,8 @@ fn get_arguments(name: quote::Tokens) -> quote::Tokens {
 fn into_rust_with_args(field_type: syn::Ty, arguments: quote::Tokens) -> quote::Tokens {
   let field_type_ident = get_cdrs_type_ident(field_type.clone());
   match field_type_ident.as_ref() {
-    "Blob" |
-    "String" |
-    "bool" |
-    "i64" |
-    "i32" |
-    "i16" |
-    "i8" |
-    "f64" |
-    "f32" |
-    "IpAddr" |
-    "Uuid" |
-    "Timespec" => {
+    "Blob" | "String" | "bool" | "i64" | "i32" | "i16" | "i8" | "f64" | "f32" | "Decimal"
+    | "IpAddr" | "Uuid" | "Timespec" => {
       quote! {
         #field_type_ident::from_cdrs_r(#arguments)?
       }
@@ -136,6 +126,7 @@ fn get_cdrs_type_ident(ty: syn::Ty) -> syn::Ident {
     "i8" => "i8".into(),
     "f64" => "f64".into(),
     "f32" => "f32".into(),
+    "Decimal" => "Decimal".into(),
     "IpAddr" => "IpAddr".into(),
     "Uuid" => "Uuid".into(),
     "Timespec" => "Timespec".into(),
@@ -160,18 +151,8 @@ fn get_ident(ty: syn::Ty) -> syn::Ident {
 fn as_rust(ty: syn::Ty, val: quote::Tokens) -> quote::Tokens {
   let cdrs_type = get_cdrs_type_ident(ty.clone());
   match cdrs_type.as_ref() {
-    "Blob" |
-    "String" |
-    "bool" |
-    "i64" |
-    "i32" |
-    "i16" |
-    "i8" |
-    "f64" |
-    "f32" |
-    "IpAddr" |
-    "Uuid" |
-    "Timespec" => val,
+    "Blob" | "String" | "bool" | "i64" | "i32" | "i16" | "i8" | "f64" | "f32" | "IpAddr"
+    | "Uuid" | "Timespec" | "Decimal" => val,
     "List" => {
       let vec_type = get_ident_params_string(ty.clone());
       let inter_rust_type = get_cdrs_type_ident(vec_type.clone());
@@ -186,7 +167,7 @@ fn as_rust(ty: syn::Ty, val: quote::Tokens) -> quote::Tokens {
           decoded
         }
       }
-    },
+    }
     "Map" => {
       let (map_key_type, map_value_type) = get_map_params_string(ty.clone());
       let inter_rust_type = get_cdrs_type_ident(map_value_type.clone());
@@ -201,11 +182,11 @@ fn as_rust(ty: syn::Ty, val: quote::Tokens) -> quote::Tokens {
           decoded
         }
       }
-    },
+    }
     "Option" => {
       let opt_type = get_ident_params_string(ty.clone());
       as_rust(opt_type.clone(), val)
-    },
+    }
     _ => {
       quote! {
         #ty::try_from_udt(#val)?
