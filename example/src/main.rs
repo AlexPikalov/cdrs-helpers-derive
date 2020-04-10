@@ -57,6 +57,7 @@ fn main() {
 #[cfg(test)]
 mod test {
     #[derive(DBMirror)]
+    #[allow(dead_code)]
     struct SomeStruct {
         pk: i32,
         name: String,

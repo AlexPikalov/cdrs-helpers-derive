@@ -1,7 +1,5 @@
 use common::struct_fields;
 use quote;
-use syn;
-use syn::Ident;
 
 pub fn impl_db_mirror(ast: &syn::DeriveInput) -> quote::Tokens {
     let name = &ast.ident;
