@@ -56,9 +56,7 @@ fn main() {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
-    #[derive(DBMirror, TryFromRow)]
+    #[derive(DBMirror)]
     struct SomeStruct {
         pk: i32,
         name: String,
