@@ -53,3 +53,19 @@ fn main() {
     println!("as value {:?}", val);
     println!("among values {:?}", values);
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[derive(DBMirror, TryFromRow)]
+    struct SomeStruct {
+        pk: i32,
+        name: String,
+    }
+
+    #[test]
+    fn test_impl_db_mirror() {
+        assert_eq!("insert into SomeStruct(pk, name) values (?, ?)", SomeStruct::insert_query())
+    }
+}

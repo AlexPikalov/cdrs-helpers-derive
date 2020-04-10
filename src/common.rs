@@ -1,19 +1,22 @@
 use quote;
 use syn;
+use syn::Field;
 
 pub fn get_struct_fields(ast: &syn::DeriveInput) -> Vec<quote::Tokens> {
-  if let syn::Body::Struct(syn::VariantData::Struct(ref fields)) = ast.body {
-    let fields = fields.iter().map(|field| {
+   struct_fields(ast).iter().map(|field| {
       let name = field.ident.clone().unwrap();
       let value = convert_field_into_rust(field.clone());
       quote!{
         #name: #value
       }
-    });
+    }).collect()
+}
 
-    fields.collect()
+pub fn struct_fields(ast: &syn::DeriveInput) -> &Vec<Field> {
+  if let syn::Body::Struct(syn::VariantData::Struct(ref fields)) = ast.body {
+    fields
   } else {
-    panic!("#[derive(IntoCDRSValue)] is only defined for structs, not for enums!");
+    panic!("The derive macro is defined for structs with named fields, not for enums or unit structs");
   }
 }
 
