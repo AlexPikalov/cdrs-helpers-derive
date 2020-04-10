@@ -2,7 +2,7 @@
 
 Procedural macros that derive helper traits for CDRS Cassandra to Rust types conversion back and forth
 
-The package is under hard development and is absolutely not stable .
+The package is under hard development and is absolutely not stable.
 
 Features:
 
@@ -14,3 +14,4 @@ Features:
 * convert Rust "collection" types into Cassandra query values
 * convert Rust structures into Cassandra query values
 * convert `Option<T>` into Cassandra query value
+* generates an insert method for a Rust struct type
