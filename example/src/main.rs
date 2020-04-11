@@ -6,7 +6,14 @@ extern crate time;
 
 use time::Timespec;
 use std::collections::HashMap;
-use cdrs::frame::{TryFromRow, TryFromUDT};
+use cdrs::types::AsRustType;
+use cdrs::types::value::{Bytes, Value};
+use cdrs::frame::{IntoBytes, TryFromRow, TryFromUDT};
+use cdrs::types::rows::Row;
+use cdrs::types::udt::UDT;
+use cdrs::types::list::List;
+use cdrs::types::map::Map;
+use cdrs::types::from_cdrs::FromCDRSByName;
 
 // #[derive(Debug, IntoCDRSValue, TryFromRow)]
 #[derive(Clone, Debug, IntoCDRSValue, TryFromRow)]
