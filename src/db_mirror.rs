@@ -37,7 +37,7 @@ pub fn impl_db_mirror(ast: &syn::DeriveInput) -> quote::Tokens {
                 let mut values: HashMap<String, cdrs::types::value::Value> = HashMap::new();
 
                 #(
-                    values.insert(stringify!(#idents), self.#idents_copy);
+                    values.insert(stringify!(#idents).to_string(), self.#idents_copy.into());
                 )*
 
                 cdrs::query::QueryValues::NamedValues(values)
