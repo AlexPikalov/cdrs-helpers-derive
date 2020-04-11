@@ -70,11 +70,11 @@ fn into_rust_with_args(field_type: syn::Ty, arguments: quote::Tokens) -> quote::
         #field_type_ident::from_cdrs_r(#arguments)?
       }
     }
-    "List" => {
+    "cdrs::types::list::List" => {
       let list_as_rust = as_rust(field_type, quote! {list});
 
       quote! {
-        match List::from_cdrs_r(#arguments) {
+        match cdrs::types::list::List::from_cdrs_r(#arguments) {
           Ok(ref list) => {
             #list_as_rust
           },
@@ -82,10 +82,10 @@ fn into_rust_with_args(field_type: syn::Ty, arguments: quote::Tokens) -> quote::
         }
       }
     }
-    "Map" => {
+    "cdrs::types::map::Map" => {
       let map_as_rust = as_rust(field_type, quote! {map});
       quote! {
-        match Map::from_cdrs_r(#arguments) {
+        match cdrs::types::map::Map::from_cdrs_r(#arguments) {
           Ok(map) => {
             #map_as_rust
           },
@@ -111,7 +111,7 @@ fn into_rust_with_args(field_type: syn::Ty, arguments: quote::Tokens) -> quote::
     }
     _ => {
       quote! {
-        #field_type::try_from_udt(UDT::from_cdrs_r(#arguments)?)?
+        #field_type::try_from_udt(cdrs::types::udt::UDT::from_cdrs_r(#arguments)?)?
       }
     }
   }
@@ -133,10 +133,10 @@ fn get_cdrs_type_ident(ty: syn::Ty) -> syn::Ident {
     "IpAddr" => "IpAddr".into(),
     "Uuid" => "Uuid".into(),
     "Timespec" => "Timespec".into(),
-    "Vec" => "List".into(),
-    "HashMap" => "Map".into(),
+    "Vec" => "cdrs::types::list::List".into(),
+    "HashMap" => "cdrs::types::map::Map".into(),
     "Option" => "Option".into(),
-    _ => "UDT".into(),
+    _ => "cdrs::types::udt::UDT".into(),
   }
 }
 
@@ -156,7 +156,7 @@ fn as_rust(ty: syn::Ty, val: quote::Tokens) -> quote::Tokens {
   match cdrs_type.as_ref() {
     "Blob" | "String" | "bool" | "i64" | "i32" | "i16" | "i8" | "f64" | "f32" | "IpAddr"
     | "Uuid" | "Timespec" | "Decimal" => val,
-    "List" => {
+    "cdrs::types::list::List" => {
       let vec_type = get_ident_params_string(ty.clone());
       let inter_rust_type = get_cdrs_type_ident(vec_type.clone());
       let decoded_item = as_rust(vec_type.clone(), quote! {item});
@@ -171,14 +171,14 @@ fn as_rust(ty: syn::Ty, val: quote::Tokens) -> quote::Tokens {
         }
       }
     }
-    "Map" => {
+    "cdrs::types::map::Map" => {
       let (map_key_type, map_value_type) = get_map_params_string(ty.clone());
       let inter_rust_type = get_cdrs_type_ident(map_value_type.clone());
       let decoded_item = as_rust(map_value_type.clone(), quote! {val});
       quote! {
         {
-          let inner: HashMap<#map_key_type, #inter_rust_type> = #val.as_rust_type()?.unwrap();
-          let mut decoded: HashMap<#map_key_type, #map_value_type> = HashMap::with_capacity(inner.len());
+          let inner: std::collections::HashMap<#map_key_type, #inter_rust_type> = #val.as_rust_type()?.unwrap();
+          let mut decoded: std::collections::HashMap<#map_key_type, #map_value_type> = std::collections::HashMap::with_capacity(inner.len());
           for (key, val) in inner {
             decoded.insert(key, #decoded_item);
           }

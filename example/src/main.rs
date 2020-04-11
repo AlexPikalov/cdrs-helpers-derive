@@ -6,14 +6,7 @@ extern crate time;
 
 use time::Timespec;
 use std::collections::HashMap;
-use cdrs::types::AsRustType;
-use cdrs::types::value::{Bytes, Value};
-use cdrs::frame::{IntoBytes, TryFromRow, TryFromUDT};
-use cdrs::types::rows::Row;
-use cdrs::types::udt::UDT;
-use cdrs::types::list::List;
-use cdrs::types::map::Map;
-use cdrs::types::from_cdrs::FromCDRSByName;
+use cdrs::frame::{TryFromRow, TryFromUDT};
 
 // #[derive(Debug, IntoCDRSValue, TryFromRow)]
 #[derive(Clone, Debug, IntoCDRSValue, TryFromRow)]
@@ -48,7 +41,7 @@ fn main() {
         opt: Some(HashMap::new()),
         my_timestamp: None,
     };
-    let val: Value = udt.clone().into();
+    let val: cdrs::types::value::Value = udt.clone().into();
     let values = query_values!(udt.clone());
     println!("as value {:?}", val);
     println!("among values {:?}", values);

@@ -8,7 +8,7 @@ pub fn impl_try_from_row(ast: &syn::DeriveInput) -> quote::Tokens {
 
   quote! {
       impl TryFromRow for #name {
-        fn try_from_row(cdrs: Row) -> cdrs::Result<Self> {
+        fn try_from_row(cdrs: cdrs::types::rows::Row) -> cdrs::Result<Self> {
           Ok(#name {
             #(#fields),*
           })
