@@ -55,36 +55,52 @@ fn main() {
 }
 
 #[cfg(test)]
-mod test {
+mod test_db_mirror {
     use cdrs::query::QueryValues;
     use cdrs::types::prelude::Value;
 
     #[derive(DBMirror)]
     #[allow(dead_code)]
     struct SomeStruct {
-        pk: i32,
+        #[partition_key]
+        id: i32,
+        #[partition_key]
+        another_id: i32,
+        #[clustering_key]
+        cluster_key: i32,
+        #[clustering_key]
+        another_cluster_key: i32,
+        // Just some column that is not part of the primary key
         name: String,
     }
 
     #[test]
     fn test_insert_query() {
-        assert_eq!("insert into SomeStruct(pk, name) values (?, ?)", SomeStruct::insert_query())
+        assert_eq!("insert into SomeStruct(id, another_id, cluster_key, another_cluster_key, name) values (?, ?, ?, ?, ?)", SomeStruct::insert_query())
     }
 
     #[test]
     fn test_into_query_values() {
-        let pk = 1;
+        let id = 1;
+        let cluster_key = 3;
         let name = "some name".to_string();
+
         let query_values: QueryValues = SomeStruct {
-            pk,
-            name: name.clone()
+            id,
+            another_id: id,
+            cluster_key,
+            another_cluster_key: cluster_key,
+            name: name.clone(),
         }.into_query_values();
 
         if let QueryValues::NamedValues(nv) = query_values {
-            assert_eq!(2, nv.len());
+            assert_eq!(5, nv.len());
 
-            let pk_val: Value = pk.into();
-            assert_eq!(&pk_val, nv.get("pk").unwrap());
+            let id_val: Value = id.into();
+            assert_eq!(&id_val, nv.get("id").unwrap());
+
+            let cluster_key: Value = cluster_key.into();
+            assert_eq!(&cluster_key, nv.get("cluster_key").unwrap());
 
             let name_val: Value = name.into();
             assert_eq!(&name_val, nv.get("name").unwrap());
