@@ -7,6 +7,10 @@ pub fn impl_db_mirror(ast: &syn::DeriveInput) -> quote::Tokens {
         .iter()
         .map(|f| f.ident.clone().unwrap())
         .collect::<Vec<_>>();
+    // TODO when https://github.com/AlexPikalov/cdrs-helpers-derive/issues/8 is merged,
+    // this variable can be replaced by variable 'idents'
+    let idents_copy = idents.clone();
+
     let fields = idents
         .iter()
         .map(|i| i.to_string())
@@ -33,7 +37,7 @@ pub fn impl_db_mirror(ast: &syn::DeriveInput) -> quote::Tokens {
                 let mut values: HashMap<String, cdrs::types::value::Value> = HashMap::new();
 
                 #(
-                    values.insert(stringify!(#idents), self.#idents);
+                    values.insert(stringify!(#idents), self.#idents_copy);
                 )*
 
                 cdrs::query::QueryValues::NamedValues(values)
