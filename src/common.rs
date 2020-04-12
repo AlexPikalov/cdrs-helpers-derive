@@ -20,19 +20,20 @@ pub fn struct_fields(ast: &syn::DeriveInput) -> &Vec<Field> {
   }
 }
 
-pub fn filter_attributes<'a>(fields: &'a Vec<Field>, att_to_find: &'static str) -> Vec<&'a Field> {
+pub fn filter_attributes(fields: &Vec<Field>, att_to_find: &str) -> Vec<Field> {
   fields
       .iter()
       .filter(|f|
-      f.attrs
-          .iter()
-          .any(|att| {
-            if let syn::MetaItem::Word(ref w) = att.value {
-              w.as_ref() == att_to_find
-            } else {
-              false
-            }
-          }))
+          f.attrs
+              .iter()
+              .any(|att| {
+                if let syn::MetaItem::Word(ref w) = att.value {
+                  w.as_ref() == att_to_find
+                } else {
+                  false
+                }
+              }))
+      .map(|f| f.clone())
       .collect()
 }
 
