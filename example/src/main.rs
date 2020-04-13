@@ -53,6 +53,7 @@ fn main() {
     println!("as value {:?}", val);
     println!("among values {:?}", values);
 }
+// TODO: bij dates => enzo toevoegen, misschien ook bij andere parameters
 
 #[cfg(test)]
 mod test_db_mirror {
@@ -109,35 +110,42 @@ mod test_db_mirror {
         }
     }
 
-//     #[test]
-//     fn test_select_queries() {
-//         assert_eq!("select * from SomeStruct", SomeStruct::select_all());
-//         assert_eq!("select count(*) from SomeStruct", SomeStruct::select_all_count());
-//         // The line below should NOT be compiled, since only rows in a where clause can be queried by there full partition key
-//         //assert_eq!("select * from SomeStruct where id = ?", SomeStruct::select_by_id());
-//
-//         let some_struct = SomeStruct {
-//             id: 1,
-//             another_id: 2,
-//             cluster_key: 3,
-//             another_cluster_key: 4,
-//             name: "name".to_string()
-//         };
-//         let mut qv = ;
-//
-//         assert_eq!(
-//             ("select * from SomeStruct where id = ? and another_id = ?", query_values!("id" => some_struct.id, "another_id" => some_struct.another_id)),
-//             SomeStruct::select_by_id_another_id(some_struct.id, some_struct.another_id));
-//
-//         assert_eq!(
-//             ("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ?", query_values!("id" => some_struct.id, "another_id" => some_struct.another_id, "cluster_key" => some_struct.cluster_key)),
-//             some_struct.select_by_id_another_id_cluster_key());
-// moeten geen instance methods zijn
-//         assert_eq!(
-//             ("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key = ?", query_values!("id" => some_struct.id, "another_id" => some_struct.another_id, "cluster_key" => some_struct.cluster_key, "another_cluster_key" => some_struct.another_cluster_key)),
-//             some_struct.select_unique());
-//
-//         assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key = ?", SomeStruct::select_unique());
-//
-//     }
+    #[test]
+    fn test_select_queries() {
+        // General select queries
+        assert_eq!("select * from SomeStruct", SomeStruct::select_all());
+        assert_eq!("select count(*) from SomeStruct", SomeStruct::select_all_count());
+
+
+        // Queries with parameters
+        let some_struct = SomeStruct {
+            id: 1,
+            another_id: 2,
+            cluster_key: 3,
+            another_cluster_key: 4,
+            name: "name".to_string()
+        };
+        // The line below should NOT be compiled, since only rows in a where clause can be queried by there full partition key
+        // TODO: Maybe the trybuild crate can verify the non-compiling code?
+        //assert_eq!("select * from SomeStruct where id = ?", SomeStruct::select_by_id());
+        let (query, qv) = SomeStruct::select_by_id_another_id(some_struct.id, some_struct.another_id);
+
+        assert_eq!("select * from SomeStruct where id = ? and another_id = ?", query);
+        assert_eq!(query_values!("id" => some_struct.id, "another_id" => some_struct.another_id), qv);
+        assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ?", SomeStruct::select_by_id_another_id_cluster_key(1, 1, 1).0);
+        assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key = ?", SomeStruct::select_unique(1, 1, 1, 1).0);
+
+        // Queries with IN
+        let vec = vec![1, 2];
+        let v: Value = vec.clone().into();
+        let (query, qv) = SomeStruct::select_by_id_another_id_in_cluster_key(some_struct.id, some_struct.another_id, vec.clone());
+
+        assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key in ?", query);
+        assert_eq!(query_values!("id" => some_struct.id, "another_id" => some_struct.another_id, "cluster_key" => v), qv);
+    }
+
+    #[test]
+    fn test_insert_queries() {
+
+    }
 }
