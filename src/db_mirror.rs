@@ -52,12 +52,21 @@ pub mod select_queries {
 
         for clustering_key in cluster_key_fields.iter() {
             processed_clustering_key_fields.push(clustering_key.clone());
+            let writer = Writer::new(name, &processed_clustering_key_fields);
 
             generate_all(
                 &mut select_all,
-                Writer::new(name, &processed_clustering_key_fields),
+                writer.clone(),
                 processed_clustering_key_fields.len() == key_size
             );
+
+            for operator in Operator::all_operators() {
+                let t = generate(WriteRange::new(writer.clone(), operator));
+
+                println!("{:#?}", t);
+
+                select_all.append(t);
+            }
         }
 
         select_all
@@ -135,6 +144,102 @@ pub mod select_queries {
 
         fn create_types(&self) -> Vec<Ty> {
             self.writer.types.clone()
+        }
+    }
+
+    enum Operator {
+        // <=
+        EqualWithSmaller,
+        // <
+        Smaller,
+        // >=
+        EqualWithLarger,
+        // >
+        Larger
+    }
+
+    impl Operator {
+        fn all_operators() -> Vec<Operator> {
+            vec![Operator::EqualWithSmaller, Operator::Smaller, Operator::EqualWithLarger, Operator::Larger]
+        }
+    }
+
+    struct WriteRange {
+        writer: Writer,
+        last_field: Field,
+        operator: Operator
+    }
+
+    impl WriteRange {
+        fn new(writer: Writer, operator: Operator) -> Self {
+            let write_with_in = WriteWithIn::new(writer);
+
+            Self {
+                writer: write_with_in.writer,
+                last_field: write_with_in.last_field,
+                operator
+            }
+        }
+    }
+
+    impl Write for WriteRange {
+        fn name(&self) -> Ident {
+            self.writer.name.clone()
+        }
+
+        fn create_where_clause(&self) -> String {
+            let mut where_clause = parameterized(&self.writer.names);
+
+            let op = match self.operator {
+                Operator::EqualWithSmaller => "<=",
+                Operator::Smaller => "<",
+                Operator::EqualWithLarger => ">=",
+                Operator::Larger => ">",
+            };
+
+            where_clause.push_str(&format!(" and {} {} ?", self.last_field.ident.clone().unwrap().as_ref(), op));
+
+            where_clause
+        }
+
+        fn create_fn_name(&self) -> Ident {
+            let mut fn_name = create_fn_name(&self.writer.fields);
+
+            let separator = match self.operator {
+                Operator::EqualWithSmaller => "equal_or_smaller_than",
+                Operator::Smaller => "smaller_than",
+                Operator::EqualWithLarger => "equal_or_larger_than",
+                Operator::Larger => "larger_than",
+            };
+
+            fn_name.push_str(&format!("{}{}{}{}", COLUMN_SEPARATOR, separator, COLUMN_SEPARATOR, self.last_field.ident.clone().unwrap().as_ref()));
+
+            Ident::new(fn_name)
+        }
+
+        fn create_param_names(&self) -> Vec<Ident> {
+            let mut names = self.writer.names.clone();
+
+            names.push(Ident::new(format!("range{}{}", COLUMN_SEPARATOR, self.last_field.ident.clone().unwrap().as_ref())));
+
+            names
+        }
+
+        fn create_qv_names(&self) -> Vec<Ident> {
+            // self.writer.names is missing the name of the last field, since it is removed
+            let mut names = self.writer.names.clone();
+
+            names.push(self.last_field.ident.clone().unwrap());
+
+            names
+        }
+
+        fn create_types(&self) -> Vec<Ty> {
+            let mut types = self.writer.types.clone();
+
+            types.push(self.last_field.ty.clone());
+
+            types
         }
     }
 

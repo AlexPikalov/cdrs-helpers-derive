@@ -110,21 +110,24 @@ mod test_db_mirror {
         }
     }
 
+    fn generate_some_struct() -> SomeStruct {
+        SomeStruct {
+            id: 1,
+            another_id: 2,
+            cluster_key: 3,
+            another_cluster_key: 4,
+            name: "name".to_string()
+        }
+    }
+
     #[test]
     fn test_select_queries() {
         // General select queries
         assert_eq!("select * from SomeStruct", SomeStruct::select_all());
         assert_eq!("select count(*) from SomeStruct", SomeStruct::select_all_count());
 
-
         // Queries with parameters
-        let some_struct = SomeStruct {
-            id: 1,
-            another_id: 2,
-            cluster_key: 3,
-            another_cluster_key: 4,
-            name: "name".to_string()
-        };
+        let some_struct = generate_some_struct();
         // The line below should NOT be compiled, since only rows in a where clause can be queried by there full partition key
         // TODO: Maybe the trybuild crate can verify the non-compiling code?
         //assert_eq!("select * from SomeStruct where id = ?", SomeStruct::select_by_id());
@@ -142,10 +145,18 @@ mod test_db_mirror {
 
         assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key in ?", query);
         assert_eq!(query_values!("id" => some_struct.id, "another_id" => some_struct.another_id, "cluster_key" => v), qv);
+        assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key in ?",
+                   SomeStruct::select_by_id_another_id_cluster_key_in_another_cluster_key(1, 1, 1, vec).0);
     }
 
     #[test]
-    fn test_insert_queries() {
+    fn test_select_range_queries() {
+        let some_struct = generate_some_struct();
 
+        let (query, qv) = SomeStruct::select_by_id_another_id_cluster_key_larger_than_another_cluster_key(some_struct.id, some_struct.another_id, some_struct.cluster_key, some_struct.another_cluster_key);
+
+        assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key > ?", query);
+        assert_eq!(query_values!("id" => some_struct.id, "another_id" => some_struct.another_id, "cluster_key" => some_struct.cluster_key, "another_cluster_key" => some_struct.another_cluster_key), qv);
     }
+
 }
