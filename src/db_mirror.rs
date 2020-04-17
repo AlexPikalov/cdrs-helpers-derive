@@ -61,11 +61,7 @@ pub mod select_queries {
             );
 
             for operator in Operator::all_operators() {
-                let t = generate(WriteRange::new(writer.clone(), operator));
-
-                println!("{:#?}", t);
-
-                select_all.append(t);
+                select_all.append(generate(WriteRange::new(writer.clone(), operator)));
             }
         }
 
@@ -395,8 +391,8 @@ mod insert_queries {
             .iter()
             .map(|f| f.ident.clone().unwrap())
             .collect::<Vec<_>>();
-// TODO when https://github.com/AlexPikalov/cdrs-helpers-derive/issues/8 is merged,
-// this variable can be replaced by variable 'idents'
+        // TODO when https://github.com/AlexPikalov/cdrs-helpers-derive/issues/8 is merged,
+        // this variable can be replaced by variable 'idents'
         let idents_copy = idents.clone();
         let fields_to_string = idents
             .iter()
