@@ -1,5 +1,6 @@
 use quote;
 use syn::{Ident, Field};
+use common::{struct_fields, filter_attributes};
 
 pub fn impl_db_mirror(ast: &syn::DeriveInput) -> quote::Tokens {
     let mut queries = ::db_mirror::select_queries::generate_select_queries(ast);
@@ -9,10 +10,49 @@ pub fn impl_db_mirror(ast: &syn::DeriveInput) -> quote::Tokens {
     queries
 }
 
+fn read_with_attributes(ast: &syn::DeriveInput) -> (Vec<Field>, Vec<Field>, Vec<Field>) {
+    let fields = struct_fields(ast).clone();
+    let partition_key_fields = filter_attributes(&fields, "partition_key");
+    let cluster_key_fields = filter_attributes(&fields, "clustering_key");
+
+    if partition_key_fields.is_empty() {
+        assert!(cluster_key_fields.is_empty());
+    }
+
+    (fields, partition_key_fields, cluster_key_fields)
+}
+
+pub mod pk_object {
+    use db_mirror::read_with_attributes;
+    use syn::Ident;
+
+    pub fn generate_pk_object(ast: &syn::DeriveInput) -> quote::Tokens {
+        let name = &ast.ident;
+        let (fields, mut partition_key_fields, mut cluster_key_fields) = read_with_attributes(ast);
+
+        if partition_key_fields.is_empty() {
+            return quote! { }
+        }
+
+        let struct_name = Ident::new(ast.ident.to_string() + "PrimaryKey");
+
+        partition_key_fields.append(&mut cluster_key_fields);
+
+
+
+        quote! {
+            pub struct #struct_name {
+
+            }
+        }
+    }
+}
+
 pub mod select_queries {
     use common::{struct_fields, filter_attributes};
     use syn::{Field, Ident, QSelf, Path, PathSegment, AngleBracketedParameterData, Ty};
     use quote::Tokens;
+    use db_mirror::read_with_attributes;
 
     const COLUMN_SEPARATOR: &str = "_";
 
@@ -31,13 +71,9 @@ pub mod select_queries {
             }
         };
 
-        let fields = struct_fields(ast).clone();
-        let partition_key_fields = filter_attributes(&fields, "partition_key");
-        let cluster_key_fields = filter_attributes(&fields, "clustering_key");
+        let (fields, partition_key_fields, cluster_key_fields) = read_with_attributes(ast);
 
         if partition_key_fields.is_empty() {
-            assert!(cluster_key_fields.is_empty());
-
             return select_all;
         }
 
