@@ -48,7 +48,7 @@ fn main() {
         opt: Some(HashMap::new()),
         my_timestamp: None,
     };
-    let val: Value = udt.clone().into();
+    let val: cdrs::types::value::Value = udt.clone().into();
     let values = query_values!(udt.clone());
     println!("as value {:?}", val);
     println!("among values {:?}", values);
