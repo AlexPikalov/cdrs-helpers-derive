@@ -6,6 +6,7 @@ pub fn impl_db_mirror(ast: &syn::DeriveInput) -> quote::Tokens {
     let mut queries = ::db_mirror::select_queries::generate_select_queries(ast);
 
     queries.append(::db_mirror::insert_queries::generate_insert_queries(ast));
+    queries.append(::db_mirror::pk_object::generate_pk_object(ast));
 
     queries
 }
@@ -25,6 +26,7 @@ fn read_with_attributes(ast: &syn::DeriveInput) -> (Vec<Field>, Vec<Field>, Vec<
 pub mod pk_object {
     use db_mirror::read_with_attributes;
     use syn::Ident;
+    use cs_ty_to_rs_ty::cdrs_ty_to_rust_ty;
 
     pub fn generate_pk_object(ast: &syn::DeriveInput) -> quote::Tokens {
         let name = &ast.ident;
@@ -34,17 +36,50 @@ pub mod pk_object {
             return quote! { }
         }
 
-        let struct_name = Ident::new(ast.ident.to_string() + "PrimaryKey");
+        let struct_name = Ident::new(name.to_string() + "PrimaryKey");
 
         partition_key_fields.append(&mut cluster_key_fields);
+        let idents = partition_key_fields
+            .iter()
+            .map(|p| p.ident.clone().unwrap())
+            .collect::<Vec<_>>();
+        // TODO: When https://github.com/AlexPikalov/cdrs-helpers-derive/issues/8 is merged,
+        // this property 'types' and idents can be removed and be inlined
+        let types = partition_key_fields
+            .iter()
+            .map(|p| p.ty.clone())
+            .collect::<Vec<_>>();
 
+        let mut properties = quote! { };
+        let mut mapping = quote! { };
 
+        for (index, ident) in idents.into_iter().enumerate() {
+            let typee = types[index].clone();
+
+            properties.append(quote! {
+                pub #ident: #typee,
+            });
+
+            mapping.append(quote! {
+               #ident: self.#ident.clone(),
+            });
+        };
 
         quote! {
             pub struct #struct_name {
+                #properties
+            }
 
+            impl #name {
+                pub fn primary_key(&self) -> #struct_name {
+                    #struct_name {
+                        #mapping
+                    }
+                }
             }
         }
+
+
     }
 }
 

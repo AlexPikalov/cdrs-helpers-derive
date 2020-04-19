@@ -159,4 +159,21 @@ mod test_db_mirror {
         assert_eq!(query_values!("id" => some_struct.id, "another_id" => some_struct.another_id, "cluster_key" => some_struct.cluster_key, "another_cluster_key" => some_struct.another_cluster_key), qv);
     }
 
+    #[test]
+    fn test_primary_key() {
+        // Check if the primary key struct exists
+        let _ = SomeStructPrimaryKey {
+            id: 1,
+            another_id: 1,
+            cluster_key: 1,
+            another_cluster_key: 1,
+        };
+
+        let s = generate_some_struct();
+        let pk = s.primary_key();
+
+        assert_eq!(s.id, pk.id);
+        assert_eq!(s.another_cluster_key, pk.another_cluster_key);
+    }
+
 }
