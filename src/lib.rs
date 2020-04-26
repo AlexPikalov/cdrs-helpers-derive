@@ -19,7 +19,7 @@ use try_from_row::impl_try_from_row;
 use try_from_udt::impl_try_from_udt;
 use db_mirror::impl_db_mirror;
 
-#[proc_macro_derive(DBMirror)]
+#[proc_macro_derive(DBMirror, attributes(partition_key, clustering_key))]
 pub fn db_mirror(input: TokenStream) -> TokenStream {
     // Construct a string representation of the type definition
     let s = input.to_string();
