@@ -108,6 +108,7 @@ pub mod select_queries {
 
     const COLUMN_SEPARATOR: &str = "_";
     const SELECT_UNIQUE: &str = "select_unique";
+    const SELECT_BY: &str = "select_by_";
 
     pub fn generate_select_queries(ast: &syn::DeriveInput) -> quote::Tokens {
         let name = &ast.ident;
@@ -195,41 +196,52 @@ pub mod select_queries {
     fn generate(write: impl Write) -> Tokens {
         let mut tokens = Tokens::new();
         let mut param_names = write.create_param_names();
-        let fn_name = write.create_fn_name();
 
-        let x = |select_clause| {
-
-        };
-
-        // Without a limit
-        tokens.append(write_impl(
-            &write.name(),
-            "*",
-            &param_names,
-            &write.create_types(),
-            fn_name.clone(),
-            write.create_where_clause(),
-        ));
-
-        // Not very useful to add a limit to a unique row query
-        if fn_name != Ident::new(SELECT_UNIQUE) {
-            let mut param_names = write.create_param_names();
-
-            param_names.push(Ident::new("limited_by"));
-
-            let mut types = write.create_types();
-
-            types.push(syn::parse_type("i32").unwrap());
-
-            // With a limit
+        let mut add_tokens = |select_clause, fn_name: Ident| {
+            // Without a limit
             tokens.append(write_impl(
                 &write.name(),
-                "*",
+                select_clause,
                 &param_names,
-                &types,
-                Ident::new(format!("{}{}limited{}by", fn_name.to_string(), COLUMN_SEPARATOR, COLUMN_SEPARATOR)),
-                write.create_where_clause() + " limit ?",
+                &write.create_types(),
+                fn_name.clone(),
+                write.create_where_clause(),
             ));
+
+            // Not very useful to add a limit to a unique row query
+            if fn_name != Ident::new(SELECT_UNIQUE) {
+                let mut param_names = write.create_param_names();
+
+                param_names.push(Ident::new("limited_by"));
+
+                let mut types = write.create_types();
+
+                types.push(syn::parse_type("i32").unwrap());
+
+                // With a limit
+                tokens.append(write_impl(
+                    &write.name(),
+                    select_clause,
+                    &param_names,
+                    &types,
+                    Ident::new(format!("{}{}limited{}by", fn_name.to_string(), COLUMN_SEPARATOR, COLUMN_SEPARATOR)),
+                    write.create_where_clause() + " limit ?",
+                ));
+            }
+        };
+
+        let fn_name = write.create_fn_name();
+
+        add_tokens("*", fn_name.clone());
+
+        if fn_name != Ident::new(SELECT_UNIQUE) {
+            let mut stringified_fn_name = fn_name.to_string();
+
+            if stringified_fn_name.starts_with(SELECT_BY) {
+                stringified_fn_name = stringified_fn_name.replacen(SELECT_BY, "select_count_", 1);
+            }
+
+            add_tokens("count(*)", Ident::new(stringified_fn_name));
         }
 
         tokens
@@ -467,7 +479,7 @@ pub mod select_queries {
                     let mut values: Vec<cdrs::types::value::Value> = Vec::new();
 
                     #(
-                      values.insert(#param_names_copy.into());
+                      values.push(#param_names_copy.into());
                     )*
 
                     (concat!("select ", #select_clause, " from ", stringify!(#name), " where ", #where_clause), cdrs::query::QueryValues::SimpleValues(values))
@@ -477,7 +489,7 @@ pub mod select_queries {
     }
 
     fn create_fn_name(v: &Vec<Field>) -> String {
-        "select_by_".to_string() + &v
+        SELECT_BY.to_string() + &v
             .iter()
             .map(|p| p.ident.clone().unwrap().to_string())
             .collect::<Vec<_>>()

@@ -144,7 +144,7 @@ mod test_db_mirror {
         let (query, qv) = SomeStruct::select_by_id_another_id(some_struct.id, some_struct.another_id);
 
         assert_eq!("select * from SomeStruct where id = ? and another_id = ?", query);
-        assert_eq!(query_values!("id" => some_struct.id, "another_id" => some_struct.another_id), qv);
+        assert_eq!(query_values!(some_struct.id, some_struct.another_id), qv);
         assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ?", SomeStruct::select_by_id_another_id_cluster_key(1, 1, 1).0);
         assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key = ?", SomeStruct::select_unique(1, 1, 1, 1).0);
 
@@ -153,25 +153,36 @@ mod test_db_mirror {
         let v: Value = vec.clone().into();
         let (query, qv) = SomeStruct::select_by_id_another_id_in_cluster_key(some_struct.id, some_struct.another_id, vec.clone());
 
-        assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key in ?", query);
-        assert_eq!(query_values!("id" => some_struct.id, "another_id" => some_struct.another_id, "cluster_key" => v), qv);
-        assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key in ?",
+        assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key in (?)", query);
+        assert_eq!(query_values!(some_struct.id, some_struct.another_id, v), qv);
+        assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key in (?)",
                    SomeStruct::select_by_id_another_id_cluster_key_in_another_cluster_key(1, 1, 1, vec.clone()).0);
 
         let (query, values) = AnotherStruct::select_by_in_id(vec.clone());
 
         assert_eq!("select * from AnotherStruct where id in (?)", query);
-        assert_eq!(QueryValues::SimpleValues(vec.clone().into()), values);
+        assert_eq!(query_values!(vec), values);
     }
 
     #[test]
     fn test_select_range_queries() {
         let some_struct = generate_some_struct();
-
         let (query, qv) = SomeStruct::select_by_id_another_id_cluster_key_larger_than_another_cluster_key(some_struct.id, some_struct.another_id, some_struct.cluster_key, some_struct.another_cluster_key);
 
         assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key > ?", query);
-        assert_eq!(query_values!("id" => some_struct.id, "another_id" => some_struct.another_id, "cluster_key" => some_struct.cluster_key, "another_cluster_key" => some_struct.another_cluster_key), qv);
+        assert_eq!(query_values!(some_struct.id, some_struct.another_id, some_struct.cluster_key, some_struct.another_cluster_key), qv);
+
+        let vec = vec![1, 2];
+        let limit = 1;
+        let (query, qv) = SomeStruct::select_by_id_another_id_cluster_key_in_another_cluster_key_limited_by(some_struct.id, some_struct.another_id, some_struct.cluster_key, vec.clone(), limit);
+
+        assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key in (?) limit ?", query);
+        assert_eq!(query_values!(some_struct.id, some_struct.another_id, some_struct.cluster_key, vec.clone(), limit), qv);
+
+        let (query, qv) = SomeStruct::select_count_id_another_id_cluster_key_in_another_cluster_key(some_struct.id, some_struct.another_id, some_struct.cluster_key, vec.clone());
+
+        assert_eq!("select count(*) from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key in (?)", query);
+        assert_eq!(query_values!(some_struct.id, some_struct.another_id, some_struct.cluster_key, vec), qv)
     }
 
     #[test]
@@ -192,3 +203,4 @@ mod test_db_mirror {
     }
 
 }
+
