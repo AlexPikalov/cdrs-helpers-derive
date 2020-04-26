@@ -151,7 +151,17 @@ pub mod select_queries {
             );
 
             for operator in Operator::all_operators() {
-                select_all.append(generate(WriteRange::new(writer.clone(), operator)));
+                select_all.append(generate(WriteRange::new(writer.clone(), operator, None)));
+
+                match operator {
+                    Operator::EqualWithSmaller | Operator::Smaller => {}, // Don't do anything
+                    Operator::EqualWithLarger | Operator::Larger => {
+                        // Add a between query
+                        for o in operator.counter_operators() {
+                            select_all.append(generate(WriteRange::new(writer.clone(), operator, Some(o))));
+                        }
+                    },
+                }
             }
         }
 
@@ -278,6 +288,7 @@ pub mod select_queries {
         }
     }
 
+    #[derive(Clone, Copy)]
     enum Operator {
         // <=
         EqualWithSmaller,
@@ -293,22 +304,49 @@ pub mod select_queries {
         fn all_operators() -> Vec<Operator> {
             vec![Operator::EqualWithSmaller, Operator::Smaller, Operator::EqualWithLarger, Operator::Larger]
         }
+
+        fn counter_operators(&self) -> Vec<Operator> {
+            match self {
+                Operator::EqualWithSmaller | Operator::Smaller => vec![Operator::EqualWithLarger, Operator::Larger],
+                Operator::EqualWithLarger | Operator::Larger => vec![Operator::EqualWithSmaller, Operator::Smaller],
+            }
+        }
+
+        fn fn_name(&self) -> &'static str {
+            match self {
+                Operator::EqualWithSmaller => "equal_or_smaller_than",
+                Operator::Smaller => "smaller_than",
+                Operator::EqualWithLarger => "equal_or_larger_than",
+                Operator::Larger => "larger_than",
+            }
+        }
+
+        fn sign(&self) -> &'static str {
+            match self {
+                Operator::EqualWithSmaller => "<=",
+                Operator::Smaller => "<",
+                Operator::EqualWithLarger => ">=",
+                Operator::Larger => ">",
+            }
+        }
     }
 
     struct WriteRange {
         writer: Writer,
         last_field: Field,
         operator: Operator,
+        next_operator: Option<Operator>
     }
 
     impl WriteRange {
-        fn new(writer: Writer, operator: Operator) -> Self {
+        fn new(writer: Writer, operator: Operator, next_operator: Option<Operator>) -> Self {
             let write_with_in = WriteWithIn::new(writer);
 
             Self {
                 writer: write_with_in.writer,
                 last_field: write_with_in.last_field,
                 operator,
+                next_operator
             }
         }
     }
@@ -321,14 +359,13 @@ pub mod select_queries {
         fn create_where_clause(&self) -> String {
             let mut where_clause = parameterized(&self.writer.names);
 
-            let op = match self.operator {
-                Operator::EqualWithSmaller => "<=",
-                Operator::Smaller => "<",
-                Operator::EqualWithLarger => ">=",
-                Operator::Larger => ">",
-            };
+            let mut add = |op: Operator| where_clause.push_str(&format!(" and {} {} ?", self.last_field.ident.clone().unwrap().as_ref(), op.sign()));
 
-            where_clause.push_str(&format!(" and {} {} ?", self.last_field.ident.clone().unwrap().as_ref(), op));
+            add(self.operator);
+
+            if let Some(o) = self.next_operator {
+                add(o);
+            }
 
             where_clause
         }
@@ -336,14 +373,11 @@ pub mod select_queries {
         fn create_fn_name(&self) -> Ident {
             let mut fn_name = create_fn_name(&self.writer.fields);
 
-            let separator = match self.operator {
-                Operator::EqualWithSmaller => "equal_or_smaller_than",
-                Operator::Smaller => "smaller_than",
-                Operator::EqualWithLarger => "equal_or_larger_than",
-                Operator::Larger => "larger_than",
-            };
+            fn_name.push_str(&format!("{}{}{}{}", COLUMN_SEPARATOR, self.operator.fn_name(), COLUMN_SEPARATOR, self.last_field.ident.clone().unwrap().as_ref()));
 
-            fn_name.push_str(&format!("{}{}{}{}", COLUMN_SEPARATOR, separator, COLUMN_SEPARATOR, self.last_field.ident.clone().unwrap().as_ref()));
+            if let Some(next) = self.next_operator {
+                fn_name.push_str(&format!("{}between{}{}", COLUMN_SEPARATOR, COLUMN_SEPARATOR, next.fn_name()))
+            }
 
             Ident::new(fn_name)
         }
@@ -351,7 +385,13 @@ pub mod select_queries {
         fn create_param_names(&self) -> Vec<Ident> {
             let mut names = self.writer.names.clone();
 
-            names.push(Ident::new(format!("range{}{}", COLUMN_SEPARATOR, self.last_field.ident.clone().unwrap().as_ref())));
+            let mut add = |op: Operator| names.push(Ident::new(format!("range{}{}{}{}", COLUMN_SEPARATOR, self.last_field.ident.clone().unwrap().as_ref(), COLUMN_SEPARATOR, op.fn_name())));
+
+            add(self.operator);
+
+            if let Some(o) = self.next_operator {
+                add(o);
+            }
 
             names
         }
@@ -359,7 +399,13 @@ pub mod select_queries {
         fn create_types(&self) -> Vec<Ty> {
             let mut types = self.writer.types.clone();
 
-            types.push(self.last_field.ty.clone());
+            let mut push = || types.push(self.last_field.ty.clone());
+
+            push();
+
+            if self.next_operator.is_some() {
+                push();
+            }
 
             types
         }

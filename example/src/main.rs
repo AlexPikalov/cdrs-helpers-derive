@@ -182,7 +182,12 @@ mod test_db_mirror {
         let (query, qv) = SomeStruct::select_count_id_another_id_cluster_key_in_another_cluster_key(some_struct.id, some_struct.another_id, some_struct.cluster_key, vec.clone());
 
         assert_eq!("select count(*) from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key in (?)", query);
-        assert_eq!(query_values!(some_struct.id, some_struct.another_id, some_struct.cluster_key, vec), qv)
+        assert_eq!(query_values!(some_struct.id, some_struct.another_id, some_struct.cluster_key, vec), qv);
+
+        let (query, qv) = SomeStruct::select_count_id_another_id_equal_or_larger_than_cluster_key_between_smaller_than_limited_by(some_struct.id, some_struct.another_id, some_struct.cluster_key + 1, some_struct.cluster_key - 1, 1);
+
+        assert_eq!("select count(*) from SomeStruct where id = ? and another_id = ? and cluster_key >= ? and cluster_key < ? limit ?", query);
+        assert_eq!(query_values!(some_struct.id, some_struct.another_id, some_struct.cluster_key + 1, some_struct.cluster_key -1, 1), qv);
     }
 
     #[test]
