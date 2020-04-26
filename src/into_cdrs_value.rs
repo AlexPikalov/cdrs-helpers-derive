@@ -12,18 +12,18 @@ pub fn impl_into_cdrs_value(ast: &syn::DeriveInput) -> quote::Tokens {
         return quote!{
           match self.#field_ident {
             Some(ref val) => {
-              let field_bytes: Bytes = val.clone().into();
-              bytes.append(&mut Value::new_normal(field_bytes).into_cbytes());
+              let field_bytes: cdrs::types::value::Bytes = val.clone().into();
+              bytes.append(&mut cdrs::types::value::Value::new_normal(field_bytes).into_cbytes());
             },
             None => {
-              bytes.append(&mut Value::new_not_set().into_cbytes());
+              bytes.append(&mut cdrs::types::value::Value::new_not_set().into_cbytes());
             }
           }
         };
       } else {
         return quote! {
-          let field_bytes: Bytes = self.#field_ident.into();
-          bytes.append(&mut Value::new_normal(field_bytes).into_cbytes());
+          let field_bytes: cdrs::types::value::Bytes = self.#field_ident.into();
+          bytes.append(&mut cdrs::types::value::Value::new_normal(field_bytes).into_cbytes());
         };
       }
     });
@@ -32,11 +32,11 @@ pub fn impl_into_cdrs_value(ast: &syn::DeriveInput) -> quote::Tokens {
     // for a struct it's enough to implement Into<Bytes> in order to be convertable into Value
     // wich is used for making queries
     quote! {
-        impl Into<Bytes> for #name {
-          fn into(self) -> Bytes {
+        impl Into<cdrs::types::value::Bytes> for #name {
+          fn into(self) -> cdrs::types::value::Bytes {
             let mut bytes: Vec<u8> = vec![];
             #(#conver_into_bytes)*
-            Bytes::new(bytes)
+            cdrs::types::value::Bytes::new(bytes)
           }
         }
     }

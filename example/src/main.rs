@@ -48,7 +48,7 @@ fn main() {
         opt: Some(HashMap::new()),
         my_timestamp: None,
     };
-    let val: Value = udt.clone().into();
+    let val: cdrs::types::value::Value = udt.clone().into();
     let values = query_values!(udt.clone());
     println!("as value {:?}", val);
     println!("among values {:?}", values);
@@ -56,6 +56,9 @@ fn main() {
 
 #[cfg(test)]
 mod test {
+    use cdrs::query::QueryValues;
+    use cdrs::types::prelude::Value;
+
     #[derive(DBMirror)]
     #[allow(dead_code)]
     struct SomeStruct {
@@ -64,7 +67,29 @@ mod test {
     }
 
     #[test]
-    fn test_impl_db_mirror() {
+    fn test_insert_query() {
         assert_eq!("insert into SomeStruct(pk, name) values (?, ?)", SomeStruct::insert_query())
+    }
+
+    #[test]
+    fn test_into_query_values() {
+        let pk = 1;
+        let name = "some name".to_string();
+        let query_values: QueryValues = SomeStruct {
+            pk,
+            name: name.clone()
+        }.into_query_values();
+
+        if let QueryValues::NamedValues(nv) = query_values {
+            assert_eq!(2, nv.len());
+
+            let pk_val: Value = pk.into();
+            assert_eq!(&pk_val, nv.get("pk").unwrap());
+
+            let name_val: Value = name.into();
+            assert_eq!(&name_val, nv.get("name").unwrap());
+        } else {
+            panic!("Expected named values");
+        }
     }
 }
