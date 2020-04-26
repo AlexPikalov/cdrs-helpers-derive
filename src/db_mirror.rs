@@ -26,14 +26,13 @@ fn read_with_attributes(ast: &syn::DeriveInput) -> (Vec<Field>, Vec<Field>, Vec<
 pub mod pk_object {
     use db_mirror::read_with_attributes;
     use syn::Ident;
-    use cs_ty_to_rs_ty::cdrs_ty_to_rust_ty;
 
     pub fn generate_pk_object(ast: &syn::DeriveInput) -> quote::Tokens {
         let name = &ast.ident;
         let (fields, mut partition_key_fields, mut cluster_key_fields) = read_with_attributes(ast);
 
         if partition_key_fields.is_empty() {
-            return quote! { }
+            return quote! { };
         }
 
         let struct_name = Ident::new(name.to_string() + "PrimaryKey");
@@ -65,7 +64,27 @@ pub mod pk_object {
             });
         };
 
+        let derives = match std::env::var("DERIVE_CDRS_PK") {
+            Ok(value_string) => {
+                if value_string.len() == 0 {
+                    vec![]
+                } else {
+                    let values = value_string.split(", ");
+                    let mut values_vec = Vec::new();
+
+                    for value in values {
+                        values_vec.push(Ident::new(value.to_string()));
+                    }
+
+                    values_vec
+                }
+            }
+            _ => vec![]
+        };
+
+        // TODO: custom derives
         quote! {
+            #[derive(#(#derives),*)]
             pub struct #struct_name {
                 #properties
             }
@@ -78,8 +97,6 @@ pub mod pk_object {
                 }
             }
         }
-
-
     }
 }
 
@@ -90,6 +107,7 @@ pub mod select_queries {
     use db_mirror::read_with_attributes;
 
     const COLUMN_SEPARATOR: &str = "_";
+    const SELECT_UNIQUE: &str = "select_unique";
 
     pub fn generate_select_queries(ast: &syn::DeriveInput) -> quote::Tokens {
         let name = &ast.ident;
@@ -115,7 +133,7 @@ pub mod select_queries {
         generate_all(
             &mut select_all,
             Writer::new(name, &partition_key_fields),
-            cluster_key_fields.is_empty()
+            cluster_key_fields.is_empty(),
         );
 
         let mut processed_clustering_key_fields = partition_key_fields.clone();
@@ -128,7 +146,7 @@ pub mod select_queries {
             generate_all(
                 &mut select_all,
                 writer.clone(),
-                processed_clustering_key_fields.len() == key_size
+                processed_clustering_key_fields.len() == key_size,
             );
 
             for operator in Operator::all_operators() {
@@ -160,8 +178,8 @@ pub mod select_queries {
             Self {
                 name: name.clone(),
                 fields: fields.clone(),
-                names: fields.iter().map(|f| f.ident.clone().unwrap()).collect::<Vec<_>>(),
-                types: fields.iter().map(|f| f.ty.clone()).collect::<Vec<_>>(),
+                names: fields.iter().map(|f| f.ident.clone().unwrap()).collect(),
+                types: fields.iter().map(|f| f.ty.clone()).collect(),
             }
         }
     }
@@ -171,12 +189,50 @@ pub mod select_queries {
         fn create_where_clause(&self) -> String;
         fn create_fn_name(&self) -> Ident;
         fn create_param_names(&self) -> Vec<Ident>;
-        fn create_qv_names(&self) -> Vec<Ident>;
         fn create_types(&self) -> Vec<Ty>;
     }
 
     fn generate(write: impl Write) -> Tokens {
-        write_impl(&write.name(), &write.create_param_names(), &write.create_qv_names(), &write.create_types(), write.create_fn_name(), write.create_where_clause())
+        let mut tokens = Tokens::new();
+        let mut param_names = write.create_param_names();
+        let fn_name = write.create_fn_name();
+
+        let x = |select_clause| {
+
+        };
+
+        // Without a limit
+        tokens.append(write_impl(
+            &write.name(),
+            "*",
+            &param_names,
+            &write.create_types(),
+            fn_name.clone(),
+            write.create_where_clause(),
+        ));
+
+        // Not very useful to add a limit to a unique row query
+        if fn_name != Ident::new(SELECT_UNIQUE) {
+            let mut param_names = write.create_param_names();
+
+            param_names.push(Ident::new("limited_by"));
+
+            let mut types = write.create_types();
+
+            types.push(syn::parse_type("i32").unwrap());
+
+            // With a limit
+            tokens.append(write_impl(
+                &write.name(),
+                "*",
+                &param_names,
+                &types,
+                Ident::new(format!("{}{}limited{}by", fn_name.to_string(), COLUMN_SEPARATOR, COLUMN_SEPARATOR)),
+                write.create_where_clause() + " limit ?",
+            ));
+        }
+
+        tokens
     }
 
     struct WriteWithoutIn {
@@ -195,17 +251,13 @@ pub mod select_queries {
 
         fn create_fn_name(&self) -> Ident {
             if self.writing_full_pk {
-                return Ident::new("select_unique");
+                return Ident::new(SELECT_UNIQUE);
             }
 
             Ident::new(create_fn_name(&self.writer.fields))
         }
 
         fn create_param_names(&self) -> Vec<Ident> {
-            self.writer.names.clone()
-        }
-
-        fn create_qv_names(&self) -> Vec<Ident> {
             self.writer.names.clone()
         }
 
@@ -222,7 +274,7 @@ pub mod select_queries {
         // >=
         EqualWithLarger,
         // >
-        Larger
+        Larger,
     }
 
     impl Operator {
@@ -234,7 +286,7 @@ pub mod select_queries {
     struct WriteRange {
         writer: Writer,
         last_field: Field,
-        operator: Operator
+        operator: Operator,
     }
 
     impl WriteRange {
@@ -244,7 +296,7 @@ pub mod select_queries {
             Self {
                 writer: write_with_in.writer,
                 last_field: write_with_in.last_field,
-                operator
+                operator,
             }
         }
     }
@@ -292,15 +344,6 @@ pub mod select_queries {
             names
         }
 
-        fn create_qv_names(&self) -> Vec<Ident> {
-            // self.writer.names is missing the name of the last field, since it is removed
-            let mut names = self.writer.names.clone();
-
-            names.push(self.last_field.ident.clone().unwrap());
-
-            names
-        }
-
         fn create_types(&self) -> Vec<Ty> {
             let mut types = self.writer.types.clone();
 
@@ -333,8 +376,12 @@ pub mod select_queries {
 
         fn create_where_clause(&self) -> String {
             let mut where_clause = parameterized(&self.writer.names);
+            let prefix = match self.writer.fields.is_empty() {
+                true => "",
+                false => " and "
+            };
 
-            where_clause.push_str(&format!(" and {} in ?", self.last_field.ident.clone().unwrap().as_ref()));
+            where_clause.push_str(&format!("{}{} in (?)", prefix, self.last_field.ident.clone().unwrap().as_ref()));
 
             where_clause
         }
@@ -342,7 +389,14 @@ pub mod select_queries {
         fn create_fn_name(&self) -> Ident {
             let mut fn_name = create_fn_name(&self.writer.fields);
 
-            fn_name.push_str(&format!("{}in{}{}", COLUMN_SEPARATOR, COLUMN_SEPARATOR, self.last_field.ident.clone().unwrap().as_ref()));
+            // For structs with 1 partition key this check is necessary else a double columns separator
+            // will appear
+            let separator = match self.writer.fields.is_empty() {
+                true => "",
+                false => COLUMN_SEPARATOR
+            };
+
+            fn_name.push_str(&format!("{}in{}{}", separator, COLUMN_SEPARATOR, self.last_field.ident.clone().unwrap().as_ref()));
 
             Ident::new(fn_name)
         }
@@ -351,15 +405,6 @@ pub mod select_queries {
             let mut names = self.writer.names.clone();
 
             names.push(Ident::new(format!("in{}{}", COLUMN_SEPARATOR, self.last_field.ident.clone().unwrap().as_ref())));
-
-            names
-        }
-
-        fn create_qv_names(&self) -> Vec<Ident> {
-            // self.writer.names is missing the name of the last field, since it is removed
-            let mut names = self.writer.names.clone();
-
-            names.push(self.last_field.ident.clone().unwrap());
 
             names
         }
@@ -405,13 +450,9 @@ pub mod select_queries {
 
     fn write_impl(
         name: &Ident,
+        select_clause: &str,
         // The names that will be used for the parameters
         param_names: &Vec<Ident>,
-        // The keys that will be used for QueryValues
-        // The only difference between this parameter and 'param_names', is in the case
-        // of creating a fn with an 'in' clause. The last param_name does have a suffixed '_in',
-        // but this parameter does not have the suffix.
-        qv_names: &Vec<Ident>,
         types: &Vec<Ty>,
         fn_name: Ident,
         where_clause: String,
@@ -423,14 +464,13 @@ pub mod select_queries {
         quote! {
             impl #name {
                 pub fn #fn_name(#(#param_names: #types),*) -> (&'static str, cdrs::query::QueryValues) {
-                    use std::collections::HashMap;
-                    let mut values: HashMap<String, cdrs::types::value::Value> = HashMap::new();
+                    let mut values: Vec<cdrs::types::value::Value> = Vec::new();
 
                     #(
-                      values.insert(stringify!(#qv_names).to_string(), #param_names_copy.into());
+                      values.insert(#param_names_copy.into());
                     )*
 
-                    (concat!("select * from ", stringify!(#name), " where ", #where_clause), cdrs::query::QueryValues::NamedValues(values))
+                    (concat!("select ", #select_clause, " from ", stringify!(#name), " where ", #where_clause), cdrs::query::QueryValues::SimpleValues(values))
                 }
             }
         }

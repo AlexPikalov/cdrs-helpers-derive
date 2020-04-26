@@ -1,3 +1,5 @@
+#![feature(proc_macro_hygiene)]
+
 #[macro_use]
 extern crate cdrs;
 #[macro_use]
@@ -53,12 +55,20 @@ fn main() {
     println!("as value {:?}", val);
     println!("among values {:?}", values);
 }
-// TODO: bij dates => enzo toevoegen, misschien ook bij andere parameters
 
 #[cfg(test)]
 mod test_db_mirror {
     use cdrs::query::QueryValues;
     use cdrs::types::prelude::Value;
+
+    #[derive(DBMirror)]
+    #[allow(dead_code)]
+    struct AnotherStruct {
+        #[partition_key]
+        id: i32,
+        // Just some column that is not part of the primary key
+        name: String,
+    }
 
     #[derive(DBMirror)]
     #[allow(dead_code)]
@@ -146,7 +156,12 @@ mod test_db_mirror {
         assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key in ?", query);
         assert_eq!(query_values!("id" => some_struct.id, "another_id" => some_struct.another_id, "cluster_key" => v), qv);
         assert_eq!("select * from SomeStruct where id = ? and another_id = ? and cluster_key = ? and another_cluster_key in ?",
-                   SomeStruct::select_by_id_another_id_cluster_key_in_another_cluster_key(1, 1, 1, vec).0);
+                   SomeStruct::select_by_id_another_id_cluster_key_in_another_cluster_key(1, 1, 1, vec.clone()).0);
+
+        let (query, values) = AnotherStruct::select_by_in_id(vec.clone());
+
+        assert_eq!("select * from AnotherStruct where id in (?)", query);
+        assert_eq!(QueryValues::SimpleValues(vec.clone().into()), values);
     }
 
     #[test]
