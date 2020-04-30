@@ -20,23 +20,6 @@ pub fn struct_fields(ast: &syn::DeriveInput) -> &Vec<Field> {
   }
 }
 
-pub fn filter_attributes(fields: &Vec<Field>, att_to_find: &str) -> Vec<Field> {
-  fields
-      .iter()
-      .filter(|f|
-          f.attrs
-              .iter()
-              .any(|att| {
-                if let syn::MetaItem::Word(ref w) = att.value {
-                  w.as_ref() == att_to_find
-                } else {
-                  false
-                }
-              }))
-      .map(|f| f.clone())
-      .collect()
-}
-
 pub fn get_map_params_string(ty: syn::Ty) -> (syn::Ty, syn::Ty) {
   match ty {
     syn::Ty::Path(_, syn::Path { segments, .. }) => match segments.last() {
