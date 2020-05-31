@@ -3,13 +3,17 @@ use syn;
 use syn::Field;
 
 pub fn get_struct_fields(ast: &syn::DeriveInput) -> Vec<quote::Tokens> {
-   struct_fields(ast).iter().map(|field| {
-      let name = field.ident.clone().unwrap();
-      let value = convert_field_into_rust(field.clone());
-      quote!{
+  tokenize_fields(ast, struct_fields(ast))
+}
+
+pub fn tokenize_fields(ast: &syn::DeriveInput, fields: &Vec<Field>) -> Vec<quote::Tokens> {
+  fields.iter().map(|field| {
+    let name = field.ident.clone().unwrap();
+    let value = convert_field_into_rust(field.clone());
+    quote!{
         #name: #value
       }
-    }).collect()
+  }).collect()
 }
 
 pub fn struct_fields(ast: &syn::DeriveInput) -> &Vec<Field> {
@@ -140,7 +144,7 @@ fn get_cdrs_type_ident(ty: syn::Ty) -> syn::Ident {
   }
 }
 
-fn get_ident(ty: syn::Ty) -> syn::Ident {
+pub fn get_ident(ty: syn::Ty) -> syn::Ident {
   match ty {
     syn::Ty::Path(_, syn::Path { segments, .. }) => match segments.last() {
       Some(&syn::PathSegment { ref ident, .. }) => ident.clone(),
