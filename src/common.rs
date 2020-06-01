@@ -222,3 +222,10 @@ pub fn get_ident_params_string(ty: syn::Ty) -> syn::Ty {
     _ => panic!("Cannot infer field type {:?}", ty),
   }
 }
+
+pub fn has_attr(field: &Field, attr: &str) -> bool {
+  field.attrs.iter().any(|a| match &a.value {
+    syn::MetaItem::Word(i) => &i.to_string() == attr,
+    _ => false
+  })
+}
