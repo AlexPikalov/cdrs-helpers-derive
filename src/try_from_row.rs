@@ -17,9 +17,8 @@ pub fn impl_try_from_row(ast: &syn::DeriveInput) -> quote::Tokens {
         let name = mapped.ident.unwrap();
         let ty = get_ident(mapped.ty);
 
-        // Maybe get rid of the clone call
         fields.push(quote! {
-            #name: #ty::try_from_row(cdrs.clone())?
+            #name: serde_json::from_str(&String::from_cdrs_r(&cdrs, stringify!(#name))?).map_err(|e| cdrs::Error::General(format!("Failed to transform type {}", stringify!(#name))))?
         })
     }
 
