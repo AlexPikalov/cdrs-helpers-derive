@@ -29,7 +29,7 @@ pub fn impl_try_from_row(ast: &syn::DeriveInput) -> quote::Tokens {
                     if val.is_empty() {
                         None
                     } else {
-                        #serde
+                        Some(#serde)
                     }
                 }
             }
