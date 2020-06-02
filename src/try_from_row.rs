@@ -15,33 +15,34 @@ pub fn impl_try_from_row(ast: &syn::DeriveInput) -> quote::Tokens {
         let ty = get_ident(mapped.ty);
 
         let string = quote! {
-            {
-
+            let val = &String::from_cdrs_r(&cdrs, stringify!(#name))?;
         };
 
         let serde = quote! {
             serde_json::from_str(&val).map_err(|e| cdrs::Error::General(format!("Failed to transform type {}", stringify!(#name))))?
-        }
-let val = &String::from_cdrs_r(&cdrs, stringify!(#name))?;
+        };
+
         let ts = if &ty.to_string() == "Option" {
             quote! {
-                if val.is_empty() {
-                    None
-                } else {
-                    #serde
+                #name: {
+                    #string
+                    if val.is_empty() {
+                        None
+                    } else {
+                        #serde
+                    }
                 }
-
             }
         } else {
             quote! {
-                #serde
+                #name: {
+                    #string
+                    #serde
                 }
             }
         };
 
-        fields.push(quote! {
-            #name:
-        })
+        fields.push(ts);
     }
 
     quote! {
