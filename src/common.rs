@@ -3,10 +3,10 @@ use syn;
 use syn::Field;
 
 pub fn get_struct_fields(ast: &syn::DeriveInput) -> Vec<quote::Tokens> {
-  tokenize_fields(ast, struct_fields(ast))
+  tokenize_fields(struct_fields(ast))
 }
 
-pub fn tokenize_fields(ast: &syn::DeriveInput, fields: &Vec<Field>) -> Vec<quote::Tokens> {
+pub fn tokenize_fields(fields: &Vec<Field>) -> Vec<quote::Tokens> {
   fields.iter().map(|field| {
     let name = field.ident.clone().unwrap();
     let value = convert_field_into_rust(field.clone());

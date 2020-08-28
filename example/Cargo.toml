@@ -2,8 +2,9 @@
 name = "example"
 version = "0.1.0"
 authors = ["Alex Pikalov <alex.pikalov.khar@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 time = "0.1.36"
 cdrs_helpers_derive = { path = ".." }
-cdrs = "2.3.1"
+cdrs = "2.3.3"
