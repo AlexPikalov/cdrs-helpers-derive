@@ -46,7 +46,7 @@ pub fn impl_try_from_row(ast: &syn::DeriveInput) -> quote::Tokens {
     }
 
     quote! {
-      impl TryFromRow for #name {
+      impl cdrs::types::prelude::TryFromRow for #name {
         fn try_from_row(cdrs: cdrs::types::rows::Row) -> cdrs::Result<Self> {
 
           Ok(#name {
