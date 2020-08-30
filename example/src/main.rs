@@ -8,6 +8,7 @@ struct Udt {
     pub vec: Vec<Vec<i32>>,
     pub map: HashMap<i64, N>,
     pub opt: Option<HashMap<i64, N>>,
+    pub uuid: uuid::Uuid
 }
 
 #[derive(Clone, Debug, cdrs_helpers_derive::IntoCDRSValue, cdrs_helpers_derive::TryFromUDT)]
@@ -28,6 +29,7 @@ fn main() {
         vec: vec![vec![1, 2]],
         map: HashMap::new(),
         opt: Some(HashMap::new()),
+        uuid: Default::default()
     };
     let val: cdrs::types::value::Value = udt.clone().into();
     let values = query_values!(udt.clone());

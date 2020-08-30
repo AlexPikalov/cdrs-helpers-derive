@@ -69,11 +69,14 @@ fn into_rust_with_args(field_type: syn::Ty, arguments: quote::Tokens) -> quote::
   let field_type_ident = get_cdrs_type_ident(field_type.clone());
   match field_type_ident.as_ref() {
     "Blob" | "String" | "bool" | "i64" | "i32" | "i16" | "i8" | "f64" | "f32" | "Decimal"
-    | "IpAddr" | "Uuid" | "Timespec" => {
+    | "IpAddr" | "Timespec" => {
       quote! {
         #field_type_ident::from_cdrs_r(#arguments)?
       }
     }
+    "Uuid" => quote! {
+        uuid::Uuid::from_cdrs_r(#arguments)?
+      },
     "cdrs::types::list::List" => {
       let list_as_rust = as_rust(field_type, quote! {list});
 
