@@ -34,6 +34,7 @@ pub fn impl_into_cdrs_value(ast: &syn::DeriveInput) -> quote::Tokens {
     quote! {
         impl Into<cdrs::types::value::Bytes> for #name {
           fn into(self) -> cdrs::types::value::Bytes {
+            use cdrs::frame::IntoBytes;
             let mut bytes: Vec<u8> = vec![];
             #(#conver_into_bytes)*
             cdrs::types::value::Bytes::new(bytes)

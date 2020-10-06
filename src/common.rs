@@ -3,13 +3,17 @@ use syn;
 use syn::Field;
 
 pub fn get_struct_fields(ast: &syn::DeriveInput) -> Vec<quote::Tokens> {
-   struct_fields(ast).iter().map(|field| {
-      let name = field.ident.clone().unwrap();
-      let value = convert_field_into_rust(field.clone());
-      quote!{
+  tokenize_fields(struct_fields(ast))
+}
+
+pub fn tokenize_fields(fields: &Vec<Field>) -> Vec<quote::Tokens> {
+  fields.iter().map(|field| {
+    let name = field.ident.clone().unwrap();
+    let value = convert_field_into_rust(field.clone());
+    quote!{
         #name: #value
       }
-    }).collect()
+  }).collect()
 }
 
 pub fn struct_fields(ast: &syn::DeriveInput) -> &Vec<Field> {
@@ -65,11 +69,14 @@ fn into_rust_with_args(field_type: syn::Ty, arguments: quote::Tokens) -> quote::
   let field_type_ident = get_cdrs_type_ident(field_type.clone());
   match field_type_ident.as_ref() {
     "Blob" | "String" | "bool" | "i64" | "i32" | "i16" | "i8" | "f64" | "f32" | "Decimal"
-    | "IpAddr" | "Uuid" | "Timespec" => {
+    | "IpAddr" | "Timespec" => {
       quote! {
         #field_type_ident::from_cdrs_r(#arguments)?
       }
     }
+    "Uuid" => quote! {
+        uuid::Uuid::from_cdrs_r(#arguments)?
+      },
     "cdrs::types::list::List" => {
       let list_as_rust = as_rust(field_type, quote! {list});
 
@@ -140,7 +147,7 @@ fn get_cdrs_type_ident(ty: syn::Ty) -> syn::Ident {
   }
 }
 
-fn get_ident(ty: syn::Ty) -> syn::Ident {
+pub fn get_ident(ty: syn::Ty) -> syn::Ident {
   match ty {
     syn::Ty::Path(_, syn::Path { segments, .. }) => match segments.last() {
       Some(&syn::PathSegment { ref ident, .. }) => ident.clone(),
@@ -217,4 +224,11 @@ pub fn get_ident_params_string(ty: syn::Ty) -> syn::Ty {
     },
     _ => panic!("Cannot infer field type {:?}", ty),
   }
+}
+
+pub fn has_attr(field: &Field, attr: &str) -> bool {
+  field.attrs.iter().any(|a| match &a.value {
+    syn::MetaItem::Word(i) => &i.to_string() == attr,
+    _ => false
+  })
 }
