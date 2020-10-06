@@ -48,9 +48,9 @@ pub fn impl_try_from_row(ast: &syn::DeriveInput) -> quote::Tokens {
     quote! {
       impl cdrs::types::prelude::TryFromRow for #name {
         fn try_from_row(cdrs: cdrs::types::rows::Row) -> cdrs::Result<Self> {
+            use cdrs::frame::TryFromUDT;
             use cdrs::types::from_cdrs::FromCDRSByName;
             use cdrs::types::AsRustType;
-            use cdrs::frame::TryFromUDT;
 
           Ok(#name {
             #(#fields),*
