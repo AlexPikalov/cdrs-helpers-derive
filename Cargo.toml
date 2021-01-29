@@ -1,6 +1,6 @@
 [package]
 name = "cdrs_helpers_derive"
-version = "0.4.3"
+version = "0.4.0"
 authors = ["Alex Pikalov <alex.pikalov.khar@gmail.com>"]
 description = "Derive CDRS helper traits"
 license = "MIT/Apache-2.0"
