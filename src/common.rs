@@ -3,20 +3,25 @@ use syn;
 use syn::Field;
 
 pub fn get_struct_fields(ast: &syn::DeriveInput) -> Vec<quote::Tokens> {
-   struct_fields(ast).iter().map(|field| {
+  struct_fields(ast)
+    .iter()
+    .map(|field| {
       let name = field.ident.clone().unwrap();
       let value = convert_field_into_rust(field.clone());
-      quote!{
+      quote! {
         #name: #value
       }
-    }).collect()
+    })
+    .collect()
 }
 
 pub fn struct_fields(ast: &syn::DeriveInput) -> &Vec<Field> {
   if let syn::Body::Struct(syn::VariantData::Struct(ref fields)) = ast.body {
     fields
   } else {
-    panic!("The derive macro is defined for structs with named fields, not for enums or unit structs");
+    panic!(
+      "The derive macro is defined for structs with named fields, not for enums or unit structs"
+    );
   }
 }
 
@@ -46,7 +51,7 @@ pub fn get_map_params_string(ty: syn::Ty) -> (syn::Ty, syn::Ty) {
 }
 
 fn convert_field_into_rust(field: syn::Field) -> quote::Tokens {
-  let mut string_name = quote!{};
+  let mut string_name = quote! {};
   string_name.append("\"");
   string_name.append(field.ident.clone().unwrap());
   string_name.append("\".trim()");
@@ -65,12 +70,13 @@ fn into_rust_with_args(field_type: syn::Ty, arguments: quote::Tokens) -> quote::
   let field_type_ident = get_cdrs_type_ident(field_type.clone());
   match field_type_ident.as_ref() {
     "Blob" | "String" | "bool" | "i64" | "i32" | "i16" | "i8" | "f64" | "f32" | "Decimal"
-    | "IpAddr" | "Uuid" | "Timespec" => {
+    | "IpAddr" | "Uuid" | "Timespec" | "PrimitiveDateTime" => {
       quote! {
         #field_type_ident::from_cdrs_r(#arguments)?
       }
     }
     "cdrs::types::list::List" => {
+      println!("LIST {:?}", arguments);
       let list_as_rust = as_rust(field_type, quote! {list});
 
       quote! {
@@ -133,6 +139,7 @@ fn get_cdrs_type_ident(ty: syn::Ty) -> syn::Ident {
     "IpAddr" => "IpAddr".into(),
     "Uuid" => "Uuid".into(),
     "Timespec" => "Timespec".into(),
+    "PrimitiveDateTime" => "PrimitiveDateTime".into(),
     "Vec" => "cdrs::types::list::List".into(),
     "HashMap" => "cdrs::types::map::Map".into(),
     "Option" => "Option".into(),
@@ -154,8 +161,8 @@ fn get_ident(ty: syn::Ty) -> syn::Ident {
 fn as_rust(ty: syn::Ty, val: quote::Tokens) -> quote::Tokens {
   let cdrs_type = get_cdrs_type_ident(ty.clone());
   match cdrs_type.as_ref() {
-    "Blob" | "String" | "bool" | "i64" | "i32" | "i16" | "i8" | "f64" | "f32" | "IpAddr"
-    | "Uuid" | "Timespec" | "Decimal" => val,
+    "Blob" | "String" | "bool" | "i64" | "i32" | "i16" | "i8" | "f64" | "f32" | "u8" | "IpAddr"
+    | "Uuid" | "Timespec" | "PrimitiveDateTime" | "Decimal" => val,
     "cdrs::types::list::List" => {
       let vec_type = get_ident_params_string(ty.clone());
       let inter_rust_type = get_cdrs_type_ident(vec_type.clone());
