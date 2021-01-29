@@ -5,5 +5,5 @@ authors = ["Alex Pikalov <alex.pikalov.khar@gmail.com>"]
 
 [dependencies]
 time = "0.2.16"
-cdrs_helpers_derive = { path = ".." }
+cdrs_helpers_derive = { path = "..", version = "*" }
 cdrs = "2"
